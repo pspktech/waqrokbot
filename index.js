@@ -93,13 +93,23 @@ async function startBot() {
       return custom.manage(sock, jid, msg, args.slice(1))
     }
 
-    if (isAdmin && (cmd === '.aion' || (cmd === '.ai' && args[1] === 'on'))) {
+    const isAiOnCommand = cmd === '.aion' || (cmd === '.ai' && args[1] === 'on')
+    const isAiOffCommand = cmd === '.aioff' || (cmd === '.ai' && args[1] === 'off')
+    const isAiStatusCommand = cmd === '.aistatus' || (cmd === '.ai' && args[1] === 'status')
+    if (isAiOnCommand || isAiOffCommand || isAiStatusCommand) {
+      if (!isAdmin) {
+        return sock.sendMessage(jid, {
+          text: '❌ Admin permission ledu. `.env` lo mee WhatsApp number ni ADMIN_NUMBER ga set chesi bot restart cheyyi.'
+        }, { quoted: msg })
+      }
+    }
+    if (isAdmin && isAiOnCommand) {
       return ai.toggle(sock, jid, msg, true)
     }
-    if (isAdmin && (cmd === '.aioff' || (cmd === '.ai' && args[1] === 'off'))) {
+    if (isAdmin && isAiOffCommand) {
       return ai.toggle(sock, jid, msg, false)
     }
-    if (isAdmin && (cmd === '.aistatus' || (cmd === '.ai' && args[1] === 'status'))) {
+    if (isAdmin && isAiStatusCommand) {
       return ai.status(sock, jid, msg)
     }
 

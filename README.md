@@ -37,6 +37,7 @@ Before running the bot, make sure you have these installed in your Termux:
    ```env
    GROQ_API_KEY=your_groq_api_key_here
    BOT_NAME=Grok_Assistant
+   ADMIN_NUMBER=919876543210
    ```
 
 💻 Usage
