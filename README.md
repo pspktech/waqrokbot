@@ -14,7 +14,8 @@ Before running the bot, make sure you have these installed in your Termux:
 * Node.js (`pkg install nodejs-lts`)
 * Python (`pkg install python`)
 * FFmpeg (`pkg install ffmpeg`)
-* yt-dlp (`pip install -U yt-dlp`)
+* Deno JavaScript runtime (`pkg install deno`)
+* yt-dlp with YouTube support (`pip install -U "yt-dlp[default]"`)
 
 ## 🚀 Installation & Setup
 

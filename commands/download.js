@@ -1,4 +1,4 @@
-const { spawn } = require('child_process')
+const { spawn, spawnSync } = require('child_process')
 const fs = require('fs-extra')
 const path = require('path')
 
@@ -11,6 +11,17 @@ function isHttpUrl(value) {
   } catch {
     return false
   }
+}
+
+function getJsRuntimeArgs() {
+  const deno = spawnSync('deno', ['--version'], { stdio: 'ignore' })
+  if (!deno.error && deno.status === 0) return ['--js-runtimes', 'deno']
+
+  const node = spawnSync('node', ['--version'], { encoding: 'utf8' })
+  const major = Number.parseInt((node.stdout || '').trim().replace(/^v/, '').split('.')[0], 10)
+  if (!node.error && node.status === 0 && major >= 22) return ['--js-runtimes', 'node']
+
+  return []
 }
 
 function runYtDlp(args) {
@@ -45,9 +56,15 @@ async function downloadYoutube(sock, jid, msg, url, type = 'audio') {
     await fs.ensureDir(DOWNLOAD_DIR)
     await sock.sendMessage(jid, { text: '⏳ Download start ayindi...' }, { quoted: msg })
 
+    const runtimeArgs = getJsRuntimeArgs()
     const args = type === 'audio'
-      ? ['-x', '--audio-format', 'mp3', '--no-playlist', '-o', filePath, url]
-      : ['-f', 'best[height<=720]', '--no-playlist', '-o', filePath, url]
+      ? [...runtimeArgs, '-x', '--audio-format', 'mp3', '--no-playlist', '-o', filePath, url]
+      : [
+          ...runtimeArgs,
+          '-f', 'bestvideo[height<=720]+bestaudio/best[height<=720]/best',
+          '--merge-output-format', 'mp4',
+          '--no-playlist', '-o', filePath, url
+        ]
 
     await runYtDlp(args)
 
@@ -68,7 +85,10 @@ async function downloadYoutube(sock, jid, msg, url, type = 'audio') {
     }
   } catch (error) {
     console.error('YouTube download error:', error.message)
-    await sendDownloadError(sock, jid, msg, '❌ Download fail ayindi. Link correct ga unda check cheyyi.')
+    const runtimeHint = getJsRuntimeArgs().length === 0
+      ? ' Termux lo `pkg install deno` run cheyyi.'
+      : ''
+    await sendDownloadError(sock, jid, msg, `❌ Download fail ayindi.${runtimeHint}`)
   } finally {
     await fs.remove(filePath).catch(() => {})
   }
@@ -84,7 +104,7 @@ async function downloadInstagram(sock, jid, msg, url) {
   try {
     await fs.ensureDir(DOWNLOAD_DIR)
     await sock.sendMessage(jid, { text: '⏳ Instagram download start...' }, { quoted: msg })
-    await runYtDlp(['--no-playlist', '-o', filePath, url])
+    await runYtDlp([...getJsRuntimeArgs(), '--no-playlist', '-o', filePath, url])
 
     if (!(await fs.pathExists(filePath))) {
       throw new Error('yt-dlp completed without creating a file')
@@ -105,5 +125,6 @@ async function downloadInstagram(sock, jid, msg, url) {
 module.exports = {
   downloadYoutube,
   downloadInstagram,
-  isHttpUrl
+  isHttpUrl,
+  getJsRuntimeArgs
 }
