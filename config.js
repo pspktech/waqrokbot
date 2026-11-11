@@ -14,11 +14,12 @@ const adminJids = String(process.env.ADMIN_NUMBER || '')
 module.exports = {
   BOT_NAME: process.env.BOT_NAME || 'Assistant',
   ADMIN: adminJids[0] || '',
-  isAdmin(jid) {
-    if (!jid) return false
-    const current = String(jid).split(':')[0]
-    const currentNumber = current.replace(/\D/g, '')
-    return adminJids.some((adminJid) => current === adminJid || currentNumber === adminJid.replace(/\D/g, ''))
+  isAdmin(...jids) {
+    return jids.filter(Boolean).some((jid) => {
+      const current = String(jid).split(':')[0]
+      const currentNumber = current.replace(/\D/g, '')
+      return adminJids.some((adminJid) => current === adminJid || currentNumber === adminJid.replace(/\D/g, ''))
+    })
   },
   PREFIX: '.',
   SYSTEM_PROMPT: `Nuvvu Telugu lo matlade warm, natural, friendly assistant.

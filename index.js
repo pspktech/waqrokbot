@@ -52,13 +52,17 @@ async function startBot() {
 
     // WhatsApp self-chat messages have fromMe=true. Process only commands there;
     // ignoring other self messages prevents the bot from replying to itself forever.
-    const botNumber = sock.user?.id?.replace(/:.*/, '').replace(/\D/g, '')
-    const chatNumber = jid.replace(/:.*/, '').replace(/\D/g, '')
-    const isSelfChat = Boolean(botNumber && chatNumber && botNumber === chatNumber)
+    const botNumbers = [sock.user?.id, sock.user?.lid]
+      .filter(Boolean)
+      .map((value) => String(value).replace(/:.*/, '').replace(/\D/g, ''))
+    const chatNumbers = [jid, msg.key.remoteJidAlt, msg.key.participantAlt]
+      .filter(Boolean)
+      .map((value) => String(value).replace(/:.*/, '').replace(/\D/g, ''))
+    const isSelfChat = chatNumbers.some((number) => number && botNumbers.includes(number))
     if (isSelfChat && !text.trim().startsWith('.')) return
     if (msg.key.fromMe && (!isSelfChat || !text.trim().startsWith('.'))) return
 
-    const isAdmin = config.isAdmin(jid)
+    const isAdmin = config.isAdmin(jid, msg.key.remoteJidAlt, msg.key.participantAlt)
     const lower = text.toLowerCase().trim()
     const args = text.trim().split(/\s+/)
     const cmd = args[0].toLowerCase()
@@ -98,6 +102,7 @@ async function startBot() {
     const isAiStatusCommand = cmd === '.aistatus' || (cmd === '.ai' && args[1] === 'status')
     if (isAiOnCommand || isAiOffCommand || isAiStatusCommand) {
       if (!isAdmin) {
+        console.log(`[AI auth] denied jid=${jid} alt=${msg.key.remoteJidAlt || '-'} admin=${config.ADMIN || '(not set)'}`)
         return sock.sendMessage(jid, {
           text: '❌ Admin permission ledu. `.env` lo mee WhatsApp number ni ADMIN_NUMBER ga set chesi bot restart cheyyi.'
         }, { quoted: msg })
