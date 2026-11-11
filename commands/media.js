@@ -4,22 +4,37 @@ const os = require('os')
 const fs = require('fs-extra')
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys')
 
-function getQuotedMessage(msg) {
-  return msg.message?.extendedTextMessage?.contextInfo?.quotedMessage || null
+function unwrapMessage(message) {
+  let current = message || null
+  for (let index = 0; current && index < 5; index += 1) {
+    const nested = current.viewOnceMessage?.message ||
+      current.viewOnceMessageV2?.message ||
+      current.viewOnceMessageV2Extension?.message ||
+      current.ephemeralMessage?.message
+    if (!nested) break
+    current = nested
+  }
+  return current
 }
 
-function unwrapMessage(message) {
-  return message?.viewOnceMessage?.message ||
-    message?.viewOnceMessageV2?.message ||
-    message?.viewOnceMessageV2Extension?.message ||
-    message || null
+function getQuotedMessage(msg) {
+  const content = unwrapMessage(msg.message)
+  return content?.extendedTextMessage?.contextInfo?.quotedMessage || null
 }
 
 function getMediaMessage(message) {
   const content = unwrapMessage(message)
-  if (content?.imageMessage) return { type: 'image', message: content.imageMessage }
-  if (content?.videoMessage) return { type: 'video', message: content.videoMessage }
-  return null
+  if (!content) return null
+
+  const mediaTypes = [
+    ['imageMessage', 'image'],
+    ['videoMessage', 'video'],
+    ['audioMessage', 'audio'],
+    ['documentMessage', 'document'],
+    ['stickerMessage', 'sticker']
+  ]
+  const found = mediaTypes.find(([key]) => content[key])
+  return found ? { type: found[1], message: content[found[0]] } : null
 }
 
 async function streamToBuffer(stream) {
@@ -59,7 +74,7 @@ async function mediaToWebp(media, inputPath, outputPath) {
 
 async function sticker(sock, jid, msg) {
   const media = getMediaMessage(msg.message) || getMediaMessage(getQuotedMessage(msg))
-  if (!media) {
+  if (!media || !['image', 'video'].includes(media.type)) {
     return sock.sendMessage(jid, { text: '❌ Image/video meeda reply chesi `.sticker` pampu.' }, { quoted: msg })
   }
 
@@ -82,20 +97,26 @@ async function sticker(sock, jid, msg) {
 async function save(sock, jid, msg) {
   const media = getMediaMessage(getQuotedMessage(msg))
   if (!media) {
-    return sock.sendMessage(jid, { text: '❌ View-once image/video meeda reply chesi `.save` pampu.' }, { quoted: msg })
+    return sock.sendMessage(jid, { text: '❌ View-once media meeda reply chesi `.save` pampu.' }, { quoted: msg })
   }
 
   try {
     const stream = await downloadContentFromMessage(media.message, media.type)
     const buffer = await streamToBuffer(stream)
-    const payload = media.type === 'image'
-      ? { image: buffer, caption: '✅ Saved media' }
-      : { video: buffer, caption: '✅ Saved media' }
+    const source = media.message
+    let payload
+
+    if (media.type === 'image') payload = { image: buffer, caption: source.caption || '✅ Saved media' }
+    else if (media.type === 'video') payload = { video: buffer, caption: source.caption || '✅ Saved media' }
+    else if (media.type === 'audio') payload = { audio: buffer, mimetype: source.mimetype || 'audio/mp4', ptt: source.ptt || false }
+    else if (media.type === 'document') payload = { document: buffer, mimetype: source.mimetype || 'application/octet-stream', fileName: source.fileName || 'saved-file' }
+    else payload = { sticker: buffer }
+
     await sock.sendMessage(jid, payload, { quoted: msg })
   } catch (error) {
     console.error('Save media error:', error.message)
-    await sock.sendMessage(jid, { text: '❌ Media save cheyyalekapoyaa.' }, { quoted: msg })
+    await sock.sendMessage(jid, { text: '❌ Media save cheyyalekapoyaa. Media reply correct ga unda check cheyyi.' }, { quoted: msg })
   }
 }
 
-module.exports = { sticker, save }
+module.exports = { sticker, save, unwrapMessage, getQuotedMessage, getMediaMessage }

@@ -4,6 +4,7 @@ const download = require('../commands/download')
 const custom = require('../commands/custom')
 const secret = require('../commands/secret')
 const protection = require('../commands/protection')
+const media = require('../commands/media')
 
 test('accepts HTTP and HTTPS URLs only', () => {
   assert.equal(download.isHttpUrl('https://www.youtube.com/watch?v=test'), true)
@@ -40,4 +41,18 @@ test('accepts safe auto-destroy durations only', () => {
   assert.equal(protection.parseDuration('1h'), 3600000)
   assert.equal(protection.parseDuration('2s'), null)
   assert.equal(protection.parseDuration('25h'), null)
+})
+
+test('extracts media from view-once and ephemeral wrappers', () => {
+  const wrapped = {
+    ephemeralMessage: {
+      message: {
+        viewOnceMessageV2: {
+          message: { imageMessage: { mimetype: 'image/jpeg', caption: 'test' } }
+        }
+      }
+    }
+  }
+  assert.equal(media.getMediaMessage(wrapped).type, 'image')
+  assert.equal(media.getMediaMessage(wrapped).message.caption, 'test')
 })
