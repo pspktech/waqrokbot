@@ -42,13 +42,20 @@ async function startBot() {
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return
     const msg = messages[0]
-    if (!msg.message || msg.key.fromMe) return
+    if (!msg.message) return
 
     const jid = msg.key.remoteJid
     if (jid.endsWith('@g.us') || jid === 'status@broadcast') return
 
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || ''
     if (!text) return
+
+    // WhatsApp self-chat messages have fromMe=true. Process only commands there;
+    // ignoring other self messages prevents the bot from replying to itself forever.
+    const botJid = sock.user?.id?.split(':')[0]
+    const chatJid = jid.split(':')[0]
+    const isSelfChat = Boolean(botJid && chatJid === botJid)
+    if (msg.key.fromMe && (!isSelfChat || !text.trim().startsWith('.'))) return
 
     const isAdmin = config.isAdmin(jid)
     const lower = text.toLowerCase().trim()
