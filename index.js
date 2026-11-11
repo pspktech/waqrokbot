@@ -10,8 +10,10 @@ const download = require('./commands/download')
 const extra = require('./commands/extra')
 const media = require('./commands/media')
 const custom = require('./commands/custom')
+const secret = require('./commands/secret')
 
 fs.ensureDirSync('./memory')
+secret.cleanup()
 
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState('auth_info')
@@ -71,6 +73,8 @@ async function startBot() {
     if (cmd === '.ping') return general.ping(sock, jid, msg)
     if (cmd === '.bot' || cmd === '.info') return general.botinfo(sock, jid, msg)
     if (cmd === '.menu' || cmd === '.help') return extra.menu(sock, jid, msg)
+    if (cmd === '.secret') return secret.create(sock, jid, msg, args[1], args.slice(2).join(' '))
+    if (cmd === '.unlock') return secret.unlock(sock, jid, msg, args[1], args[2])
 
     if (cmd === '.sticker' || cmd === '.s') return media.sticker(sock, jid, msg)
     if (cmd === '.save') return media.save(sock, jid, msg)

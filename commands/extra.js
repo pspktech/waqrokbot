@@ -38,6 +38,8 @@ async function menu(sock, jid, msg) {
 *Media*
 .sticker - Image/video meeda reply chesi use cheyyi
 .save - View-once image/video meeda reply chesi use cheyyi
+.secret <PIN> <message> - Create encrypted secret
+.unlock <ID> <PIN> - Unlock secret once
 .yta <YouTube link> - Download audio
 .ytv <YouTube link> - Download video
 .ytsearch <query> - Search YouTube
