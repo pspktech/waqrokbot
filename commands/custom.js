@@ -16,19 +16,42 @@ function saveReplies(replies) {
   fs.writeJsonSync(FILE, replies, { spaces: 2 })
 }
 
+function parseCommand(args) {
+  const raw = args.join(' ').trim()
+  const match = raw.match(/^(add|delete|del|remove|list)\b\s*(.*)$/i)
+  if (!match) return { action: raw.toLowerCase() }
+
+  const action = match[1].toLowerCase()
+  const rest = match[2].trim()
+  if (action === 'list') return { action }
+  if (action !== 'add') return { action, keyword: rest.toLowerCase() }
+
+  const pipe = rest.indexOf('|')
+  if (pipe >= 0) {
+    return {
+      action,
+      keyword: rest.slice(0, pipe).trim().toLowerCase(),
+      reply: rest.slice(pipe + 1).trim()
+    }
+  }
+
+  const parts = rest.split(/\s+/)
+  return {
+    action,
+    keyword: (parts.shift() || '').toLowerCase(),
+    reply: parts.join(' ').trim()
+  }
+}
+
 async function manage(sock, jid, msg, args) {
-  const action = (args[0] || '').toLowerCase()
-  const keyword = (args[1] || '').toLowerCase()
-  const reply = args.slice(2).join(' ').trim()
+  const { action, keyword, reply } = parseCommand(args)
   const replies = loadReplies()
 
   if (action === 'add') {
     if (!keyword || !reply) {
       return sock.sendMessage(jid, { text: 'Use: `.autoreply add hi | Hello ra`' }, { quoted: msg })
     }
-    const separator = args.slice(2).join(' ').split('|')
-    const response = separator.length > 1 ? separator.slice(1).join('|').trim() : reply
-    replies[keyword] = response
+    replies[keyword] = reply
     saveReplies(replies)
     return sock.sendMessage(jid, { text: `✅ Auto reply saved for: ${keyword}` }, { quoted: msg })
   }
@@ -69,4 +92,4 @@ async function respond(sock, jid, msg, text) {
   return true
 }
 
-module.exports = { manage, respond, find }
+module.exports = { manage, respond, find, parseCommand }

@@ -50,7 +50,7 @@ async function startBot() {
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || ''
     if (!text) return
 
-    const isAdmin = jid === config.ADMIN
+    const isAdmin = config.isAdmin(jid)
     const lower = text.toLowerCase().trim()
     const args = text.trim().split(/\s+/)
     const cmd = args[0].toLowerCase()
