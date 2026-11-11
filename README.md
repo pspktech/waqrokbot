@@ -34,7 +34,7 @@ Before running the bot, make sure you have these installed in your Termux:
 4. Setup Environment Variables:
    Create a .env file in the root directory and add your API keys:
    ```env
-   OPENAI_API_KEY=your_api_key_here
+   GROQ_API_KEY=your_groq_api_key_here
    BOT_NAME=Grok_Assistant
    ```
 
