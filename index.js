@@ -7,6 +7,8 @@ const config = require('./config')
 const ai = require('./commands/ai')
 const general = require('./commands/general')
 const download = require('./commands/download')
+const extra = require('./commands/extra')
+const media = require('./commands/media')
 
 fs.ensureDirSync('./memory')
 
@@ -55,6 +57,27 @@ async function startBot() {
     // ===== COMMANDS =====
     if (cmd === '.ping') return general.ping(sock, jid, msg)
     if (cmd === '.bot' || cmd === '.info') return general.botinfo(sock, jid, msg)
+    if (cmd === '.menu' || cmd === '.help') return extra.menu(sock, jid, msg)
+
+    if (cmd === '.sticker' || cmd === '.s') return media.sticker(sock, jid, msg)
+    if (cmd === '.save') return media.save(sock, jid, msg)
+    if (cmd === '.ytsearch' || cmd === '.yts') {
+      if (!args.slice(1).length) return extra.menu(sock, jid, msg)
+      return extra.ytsearch(sock, jid, msg, args.slice(1).join(' '))
+    }
+    if (cmd === '.weather') {
+      if (!args.slice(1).length) return extra.weather(sock, jid, msg, 'Hyderabad')
+      return extra.weather(sock, jid, msg, args.slice(1).join(' '))
+    }
+    if (cmd === '.translate' || cmd === '.tr') {
+      if (!args[1] || !args.slice(2).length) {
+        return sock.sendMessage(jid, { text: 'Use: `.translate en namaste`' }, { quoted: msg })
+      }
+      return extra.translate(sock, jid, msg, args[1], args.slice(2).join(' '))
+    }
+    if (cmd === '.remind') {
+      return extra.remind(sock, jid, msg, args[1], args.slice(2).join(' '))
+    }
 
     if (cmd === '.ai' && isAdmin) {
       if (args[1] === 'on') return ai.toggle(sock, jid, msg, true)
