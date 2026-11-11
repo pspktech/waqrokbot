@@ -52,9 +52,10 @@ async function startBot() {
 
     // WhatsApp self-chat messages have fromMe=true. Process only commands there;
     // ignoring other self messages prevents the bot from replying to itself forever.
-    const botJid = sock.user?.id?.split(':')[0]
-    const chatJid = jid.split(':')[0]
-    const isSelfChat = Boolean(botJid && chatJid === botJid)
+    const botNumber = sock.user?.id?.replace(/:.*/, '').replace(/\D/g, '')
+    const chatNumber = jid.replace(/:.*/, '').replace(/\D/g, '')
+    const isSelfChat = Boolean(botNumber && chatNumber && botNumber === chatNumber)
+    if (isSelfChat && !text.trim().startsWith('.')) return
     if (msg.key.fromMe && (!isSelfChat || !text.trim().startsWith('.'))) return
 
     const isAdmin = config.isAdmin(jid)
@@ -92,10 +93,14 @@ async function startBot() {
       return custom.manage(sock, jid, msg, args.slice(1))
     }
 
-    if (cmd === '.ai' && isAdmin) {
-      if (args[1] === 'on') return ai.toggle(sock, jid, msg, true)
-      if (args[1] === 'off') return ai.toggle(sock, jid, msg, false)
-      if (args[1] === 'status') return ai.status(sock, jid, msg)
+    if (isAdmin && (cmd === '.aion' || (cmd === '.ai' && args[1] === 'on'))) {
+      return ai.toggle(sock, jid, msg, true)
+    }
+    if (isAdmin && (cmd === '.aioff' || (cmd === '.ai' && args[1] === 'off'))) {
+      return ai.toggle(sock, jid, msg, false)
+    }
+    if (isAdmin && (cmd === '.aistatus' || (cmd === '.ai' && args[1] === 'status'))) {
+      return ai.status(sock, jid, msg)
     }
 
     if (cmd === '.ask' || cmd === '.enquiry' || cmd === '.askai') {
