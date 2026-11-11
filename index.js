@@ -11,6 +11,7 @@ const extra = require('./commands/extra')
 const media = require('./commands/media')
 const custom = require('./commands/custom')
 const secret = require('./commands/secret')
+const protection = require('./commands/protection')
 
 fs.ensureDirSync('./memory')
 secret.cleanup()
@@ -29,6 +30,16 @@ async function startBot() {
 
   sock.ev.on('creds.update', saveCreds)
 
+  sock.ev.on('messages.update', async (updates) => {
+    for (const update of updates) {
+      try {
+        await protection.handleUpdate(sock, update)
+      } catch (error) {
+        console.error('Anti-delete error:', error.message)
+      }
+    }
+  })
+
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect } = update
     if (connection === 'close') {
@@ -45,6 +56,7 @@ async function startBot() {
     if (type !== 'notify') return
     const msg = messages[0]
     if (!msg.message) return
+    protection.remember(msg)
 
     const jid = msg.key.remoteJid
     if (jid.endsWith('@g.us') || jid === 'status@broadcast') return
@@ -75,6 +87,15 @@ async function startBot() {
     if (cmd === '.menu' || cmd === '.help') return extra.menu(sock, jid, msg)
     if (cmd === '.secret') return secret.create(sock, jid, msg, args[1], args.slice(2).join(' '))
     if (cmd === '.unlock') return secret.unlock(sock, jid, msg, args[1], args[2])
+    if (cmd === '.autodestroy' || cmd === '.selfdestruct') {
+      return protection.autodestroy(sock, jid, msg, args[1], args.slice(2).join(' '))
+    }
+    if (cmd === '.antidelete') {
+      if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Anti-delete admin matrame change cheyyali.' }, { quoted: msg })
+      if (args[1] === 'on') return protection.toggle(sock, jid, msg, true)
+      if (args[1] === 'off') return protection.toggle(sock, jid, msg, false)
+      return protection.status(sock, jid, msg)
+    }
 
     if (cmd === '.sticker' || cmd === '.s') return media.sticker(sock, jid, msg)
     if (cmd === '.save') return media.save(sock, jid, msg)

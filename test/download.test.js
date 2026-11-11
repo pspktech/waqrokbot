@@ -3,6 +3,7 @@ const assert = require('node:assert/strict')
 const download = require('../commands/download')
 const custom = require('../commands/custom')
 const secret = require('../commands/secret')
+const protection = require('../commands/protection')
 
 test('accepts HTTP and HTTPS URLs only', () => {
   assert.equal(download.isHttpUrl('https://www.youtube.com/watch?v=test'), true)
@@ -32,4 +33,11 @@ test('encrypts and decrypts secret messages with the correct PIN only', () => {
   const encrypted = secret.encryptMessage('private Telugu message', '1234')
   assert.equal(secret.decryptMessage(encrypted, '1234'), 'private Telugu message')
   assert.throws(() => secret.decryptMessage(encrypted, '9999'))
+})
+
+test('accepts safe auto-destroy durations only', () => {
+  assert.equal(protection.parseDuration('10s'), 10000)
+  assert.equal(protection.parseDuration('1h'), 3600000)
+  assert.equal(protection.parseDuration('2s'), null)
+  assert.equal(protection.parseDuration('25h'), null)
 })

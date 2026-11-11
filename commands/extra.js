@@ -40,6 +40,8 @@ async function menu(sock, jid, msg) {
 .save - View-once image/video meeda reply chesi use cheyyi
 .secret <PIN> <message> - Create encrypted secret
 .unlock <ID> <PIN> - Unlock secret once
+.autodestroy <10s> <message> - Delete bot message after delay
+.antidelete on/off/status - Restore deleted text (admin)
 .yta <YouTube link> - Download audio
 .ytv <YouTube link> - Download video
 .ytsearch <query> - Search YouTube
