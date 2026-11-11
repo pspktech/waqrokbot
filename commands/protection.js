@@ -5,14 +5,22 @@ const SETTINGS_FILE = path.resolve('./protection_status.json')
 const CACHE_TTL = 60 * 60 * 1000
 const messageCache = new Map()
 let antiDeleteEnabled = true
+let autoDestroyEnabled = false
+let autoDestroyDelay = 10000
 
 try {
   const saved = fs.readJsonSync(SETTINGS_FILE)
   antiDeleteEnabled = saved.antiDelete ?? true
+  autoDestroyEnabled = saved.autoDestroy ?? false
+  autoDestroyDelay = saved.autoDestroyDelay ?? 10000
 } catch {}
 
 function saveSettings() {
-  fs.writeJsonSync(SETTINGS_FILE, { antiDelete: antiDeleteEnabled }, { spaces: 2 })
+  fs.writeJsonSync(SETTINGS_FILE, {
+    antiDelete: antiDeleteEnabled,
+    autoDestroy: autoDestroyEnabled,
+    autoDestroyDelay
+  }, { spaces: 2 })
 }
 
 function parseDuration(value) {
@@ -37,10 +45,7 @@ function extractContent(msg) {
     ['stickerMessage', 'sticker']
   ].find(([key]) => content[key])
   if (media) {
-    return {
-      kind: media[1],
-      text: content[media[0]].caption || `[${media[1]} message]`
-    }
+    return { kind: media[1], text: content[media[0]].caption || `[${media[1]} message]` }
   }
   return null
 }
@@ -61,6 +66,19 @@ function remember(msg) {
   }
 }
 
+function scheduleAutoDestroy(sock, msg, isOwner) {
+  if (!autoDestroyEnabled || !msg?.key?.id) return
+  if (!msg.key.fromMe && !isOwner) return
+
+  setTimeout(async () => {
+    try {
+      await sock.sendMessage(msg.key.remoteJid, { delete: msg.key })
+    } catch (error) {
+      console.error('Global auto-destroy error:', error.message)
+    }
+  }, autoDestroyDelay)
+}
+
 async function handleUpdate(sock, item) {
   if (!antiDeleteEnabled) return
   const protocol = item.update?.message?.protocolMessage
@@ -70,7 +88,9 @@ async function handleUpdate(sock, item) {
   messageCache.delete(protocol.key.id)
   if (!cached) return
 
-  const label = cached.kind === 'text' ? cached.text : `${cached.text}\n(Media content itself cannot be restored after deletion.)`
+  const label = cached.kind === 'text'
+    ? cached.text
+    : `${cached.text}\n(Media content itself cannot be restored after deletion.)`
   await sock.sendMessage(cached.jid, {
     text: `🛡️ Anti-delete\nDeleted message recovered:\n\n${label}`
   })
@@ -80,7 +100,7 @@ async function autodestroy(sock, jid, msg, durationText, text) {
   const duration = parseDuration(durationText)
   if (!duration || !text) {
     return sock.sendMessage(jid, {
-      text: 'Use: `.autodestroy 10s secret message`\nTime: 5s to 24h.'
+      text: 'Use: `.autodestroy 10s secret message`\nTime: 5s to 24h.\nGlobal mode: `.autodestroy on [10s]`'
     }, { quoted: msg })
   }
 
@@ -102,10 +122,34 @@ async function toggle(sock, jid, msg, value) {
   }, { quoted: msg })
 }
 
-async function status(sock, jid, msg) {
+async function toggleAutoDestroy(sock, jid, msg, value, delayText) {
+  const delay = delayText ? parseDuration(delayText) : autoDestroyDelay
+  if (delayText && !delay) {
+    return sock.sendMessage(jid, { text: '❌ Delay 5s to 24h madhya undali. Example: `.autodestroy on 10s`' }, { quoted: msg })
+  }
+  autoDestroyEnabled = value
+  if (delay) autoDestroyDelay = delay
+  saveSettings()
   await sock.sendMessage(jid, {
-    text: `🛡️ Anti-delete: ${antiDeleteEnabled ? 'ON' : 'OFF'}\n⏳ Auto-destroy: `.concat('Use `.autodestroy 10s message`')
+    text: value
+      ? `✅ Global auto-destroy ON. Messages ${Math.round(autoDestroyDelay / 1000)}s tarvata delete avvadaniki try chestayi.`
+      : '❌ Global auto-destroy OFF chesaa.'
   }, { quoted: msg })
 }
 
-module.exports = { remember, handleUpdate, autodestroy, toggle, status, parseDuration }
+async function status(sock, jid, msg) {
+  await sock.sendMessage(jid, {
+    text: `🛡️ Anti-delete: ${antiDeleteEnabled ? 'ON' : 'OFF'}\n⏳ Global auto-destroy: ${autoDestroyEnabled ? `ON (${Math.round(autoDestroyDelay / 1000)}s)` : 'OFF'}\nOne-time: .autodestroy 10s message`
+  }, { quoted: msg })
+}
+
+module.exports = {
+  remember,
+  handleUpdate,
+  scheduleAutoDestroy,
+  autodestroy,
+  toggle,
+  toggleAutoDestroy,
+  status,
+  parseDuration
+}

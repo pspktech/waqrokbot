@@ -59,6 +59,8 @@ async function startBot() {
     protection.remember(msg)
 
     const jid = msg.key.remoteJid
+    const isAdmin = config.isAdmin(jid, msg.key.remoteJidAlt, msg.key.participantAlt)
+    protection.scheduleAutoDestroy(sock, msg, isAdmin)
     if (jid.endsWith('@g.us') || jid === 'status@broadcast') return
 
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || ''
@@ -76,7 +78,6 @@ async function startBot() {
     if (isSelfChat && !text.trim().startsWith('.')) return
     if (msg.key.fromMe && (!isSelfChat || !text.trim().startsWith('.'))) return
 
-    const isAdmin = config.isAdmin(jid, msg.key.remoteJidAlt, msg.key.participantAlt)
     const lower = text.toLowerCase().trim()
     const args = text.trim().split(/\s+/)
     const cmd = args[0].toLowerCase()
@@ -88,6 +89,11 @@ async function startBot() {
     if (cmd === '.secret') return secret.create(sock, jid, msg, args[1], args.slice(2).join(' '))
     if (cmd === '.unlock') return secret.unlock(sock, jid, msg, args[1], args[2])
     if (cmd === '.autodestroy' || cmd === '.selfdestruct') {
+      if (['on', 'off', 'status'].includes(args[1]?.toLowerCase())) {
+        if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Global auto-destroy admin matrame change cheyyali.' }, { quoted: msg })
+        if (args[1].toLowerCase() === 'status') return protection.status(sock, jid, msg)
+        return protection.toggleAutoDestroy(sock, jid, msg, args[1].toLowerCase() === 'on', args[2])
+      }
       return protection.autodestroy(sock, jid, msg, args[1], args.slice(2).join(' '))
     }
     if (cmd === '.antidelete') {
