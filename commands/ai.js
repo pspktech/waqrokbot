@@ -3,17 +3,29 @@ const path = require('path')
 const OpenAI = require('openai')
 const config = require('../config')
 
-const AI_STATUS_FILE = './ai_status.json'
-let aiEnabled = true
+const AI_STATUS_FILE = path.resolve('./ai_status.json')
+let status = { chat: true, enquiry: true }
 
 if (fs.existsSync(AI_STATUS_FILE)) {
-  aiEnabled = fs.readJsonSync(AI_STATUS_FILE).enabled
+  try {
+    const saved = fs.readJsonSync(AI_STATUS_FILE)
+    status = {
+      chat: saved.chat ?? saved.enabled ?? true,
+      enquiry: saved.enquiry ?? true
+    }
+  } catch (error) {
+    console.error('AI status read error:', error.message)
+  }
 }
 
 const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
   baseURL: 'https://api.groq.com/openai/v1'
 })
+
+function saveStatus() {
+  fs.writeJsonSync(AI_STATUS_FILE, { chat: status.chat, enquiry: status.enquiry }, { spaces: 2 })
+}
 
 function getMemory(jid) {
   const file = path.join('./memory', jid.replace(/[^a-zA-Z0-9]/g, '_') + '.json')
@@ -27,10 +39,7 @@ function saveMemory(jid, messages) {
 }
 
 async function askAI(jid, userMessage) {
-  if (!aiEnabled) return null
-
   const history = getMemory(jid)
-
   const messages = [
     { role: 'system', content: config.SYSTEM_PROMPT },
     ...history,
@@ -53,24 +62,37 @@ async function askAI(jid, userMessage) {
     return reply
   } catch (err) {
     console.error('AI Error:', err.message)
-    return "Ippudu konchem problem undi, konni seconds lo try cheyyi."
+    return 'Ippudu konchem problem undi, konni seconds lo try cheyyi.'
   }
 }
 
-module.exports = {
-  aiEnabled: () => aiEnabled,
+function setChatEnabled(enable) {
+  status.chat = enable
+  saveStatus()
+}
 
-  async toggle(sock, jid, msg, enable) {
-    aiEnabled = enable
-    fs.writeJsonSync(AI_STATUS_FILE, { enabled: aiEnabled })
+function setEnquiryEnabled(enable) {
+  status.enquiry = enable
+  saveStatus()
+}
+
+module.exports = {
+  aiEnabled: () => status.chat,
+  chatEnabled: () => status.chat,
+  enquiryEnabled: () => status.enquiry,
+
+  async toggle(sock, jid, msg, enable, type = 'chat') {
+    if (type === 'enquiry') setEnquiryEnabled(enable)
+    else setChatEnabled(enable)
+    const label = type === 'enquiry' ? 'AI enquiry' : 'AI automatic chat reply'
     await sock.sendMessage(jid, {
-      text: enable ? '✅ AI On chesaa' : '❌ AI Off chesaa'
+      text: enable ? `✅ ${label} ON chesaa` : `❌ ${label} OFF chesaa`
     }, { quoted: msg })
   },
 
   async status(sock, jid, msg) {
     await sock.sendMessage(jid, {
-      text: aiEnabled ? '✅ AI chat currently ON undi.' : '❌ AI chat currently OFF undi.'
+      text: `*AI Status*\n\n💬 Automatic chat reply: ${status.chat ? 'ON' : 'OFF'}\n❓ AI enquiry (.ask/.enquiry): ${status.enquiry ? 'ON' : 'OFF'}`
     }, { quoted: msg })
   },
 

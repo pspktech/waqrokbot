@@ -97,10 +97,16 @@ async function startBot() {
       return custom.manage(sock, jid, msg, args.slice(1))
     }
 
-    const isAiOnCommand = cmd === '.aion' || (cmd === '.ai' && args[1] === 'on')
-    const isAiOffCommand = cmd === '.aioff' || (cmd === '.ai' && args[1] === 'off')
-    const isAiStatusCommand = cmd === '.aistatus' || (cmd === '.ai' && args[1] === 'status')
-    if (isAiOnCommand || isAiOffCommand || isAiStatusCommand) {
+    const aiType = args[1]?.toLowerCase()
+    const isLegacyAiToggle = cmd === '.aion' || cmd === '.aioff' || (cmd === '.ai' && ['on', 'off'].includes(aiType))
+    const isAiOnCommand = cmd === '.aion' || (cmd === '.ai' && aiType === 'on')
+    const isAiOffCommand = cmd === '.aioff' || (cmd === '.ai' && aiType === 'off')
+    const isAiReplyOnCommand = cmd === '.aireplyon' || (cmd === '.ai' && aiType === 'reply' && args[2]?.toLowerCase() === 'on')
+    const isAiReplyOffCommand = cmd === '.aireplyoff' || (cmd === '.ai' && aiType === 'reply' && args[2]?.toLowerCase() === 'off')
+    const isAiEnquiryOnCommand = cmd === '.aienquiryon' || (cmd === '.ai' && ['enquiry', 'ask'].includes(aiType) && args[2]?.toLowerCase() === 'on')
+    const isAiEnquiryOffCommand = cmd === '.aienquiryoff' || (cmd === '.ai' && ['enquiry', 'ask'].includes(aiType) && args[2]?.toLowerCase() === 'off')
+    const isAiStatusCommand = cmd === '.aistatus' || (cmd === '.ai' && aiType === 'status')
+    if (isLegacyAiToggle || isAiReplyOnCommand || isAiReplyOffCommand || isAiEnquiryOnCommand || isAiEnquiryOffCommand || isAiStatusCommand) {
       if (!isAdmin) {
         console.log(`[AI auth] denied jid=${jid} alt=${msg.key.remoteJidAlt || '-'} admin=${config.ADMIN || '(not set)'}`)
         return sock.sendMessage(jid, {
@@ -108,18 +114,24 @@ async function startBot() {
         }, { quoted: msg })
       }
     }
-    if (isAdmin && isAiOnCommand) {
-      return ai.toggle(sock, jid, msg, true)
+    if (isAdmin && (isAiOnCommand || isAiReplyOnCommand)) {
+      return ai.toggle(sock, jid, msg, true, isAiReplyOnCommand ? 'chat' : 'chat')
     }
-    if (isAdmin && isAiOffCommand) {
-      return ai.toggle(sock, jid, msg, false)
+    if (isAdmin && (isAiOffCommand || isAiReplyOffCommand)) {
+      return ai.toggle(sock, jid, msg, false, isAiReplyOffCommand ? 'chat' : 'chat')
+    }
+    if (isAdmin && isAiEnquiryOnCommand) {
+      return ai.toggle(sock, jid, msg, true, 'enquiry')
+    }
+    if (isAdmin && isAiEnquiryOffCommand) {
+      return ai.toggle(sock, jid, msg, false, 'enquiry')
     }
     if (isAdmin && isAiStatusCommand) {
       return ai.status(sock, jid, msg)
     }
 
     if (cmd === '.ask' || cmd === '.enquiry' || cmd === '.askai') {
-      if (!ai.aiEnabled()) {
+      if (!ai.enquiryEnabled()) {
         return sock.sendMessage(jid, { text: '❌ AI currently OFF undi. Admin `.ai on` cheyyali.' }, { quoted: msg })
       }
       const question = args.slice(1).join(' ').trim()
@@ -141,7 +153,7 @@ async function startBot() {
     if (!lower.startsWith('.') && await custom.respond(sock, jid, msg, text)) return
 
     // ===== AI CHAT =====
-    if (ai.aiEnabled()) {
+    if (ai.chatEnabled()) {
       await sock.sendPresenceUpdate('composing', jid)
       const reply = await ai.askAI(jid, text)
       if (reply) {
