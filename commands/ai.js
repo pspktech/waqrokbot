@@ -45,7 +45,8 @@ async function askAI(jid, userMessage) {
       max_tokens: 500
     })
 
-    const reply = response.choices[0].message.content.trim()
+    const reply = response.choices?.[0]?.message?.content?.trim()
+    if (!reply) throw new Error('AI returned an empty response')
     history.push({ role: 'user', content: userMessage })
     history.push({ role: 'assistant', content: reply })
     saveMemory(jid, history)
@@ -64,6 +65,12 @@ module.exports = {
     fs.writeJsonSync(AI_STATUS_FILE, { enabled: aiEnabled })
     await sock.sendMessage(jid, {
       text: enable ? '✅ AI On chesaa' : '❌ AI Off chesaa'
+    }, { quoted: msg })
+  },
+
+  async status(sock, jid, msg) {
+    await sock.sendMessage(jid, {
+      text: aiEnabled ? '✅ AI chat currently ON undi.' : '❌ AI chat currently OFF undi.'
     }, { quoted: msg })
   },
 

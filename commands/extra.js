@@ -46,7 +46,15 @@ async function menu(sock, jid, msg) {
 *Tools*
 .weather <city> - Current weather
 .translate <language> <text> - Translate text
-.remind <10m|1h|30s> <message> - Set reminder`
+.remind <10m|1h|30s> <message> - Set reminder
+
+*AI*
+.ask <question> - Ask AI directly
+.enquiry <question> - AI enquiry alias
+.ai status - Check AI status (admin)
+.ai on / .ai off - Toggle AI chat (admin)
+.autoreply add keyword | reply - Add custom reply (admin)
+.autoreply list / delete keyword - Manage custom replies (admin)`
   await sock.sendMessage(jid, { text }, { quoted: msg })
 }
 

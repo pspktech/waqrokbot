@@ -9,6 +9,7 @@ const general = require('./commands/general')
 const download = require('./commands/download')
 const extra = require('./commands/extra')
 const media = require('./commands/media')
+const custom = require('./commands/custom')
 
 fs.ensureDirSync('./memory')
 
@@ -79,9 +80,25 @@ async function startBot() {
       return extra.remind(sock, jid, msg, args[1], args.slice(2).join(' '))
     }
 
+    if (cmd === '.autoreply' || cmd === '.customreply') {
+      if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Ee command admin matrame use cheyyali.' }, { quoted: msg })
+      return custom.manage(sock, jid, msg, args.slice(1))
+    }
+
     if (cmd === '.ai' && isAdmin) {
       if (args[1] === 'on') return ai.toggle(sock, jid, msg, true)
       if (args[1] === 'off') return ai.toggle(sock, jid, msg, false)
+      if (args[1] === 'status') return ai.status(sock, jid, msg)
+    }
+
+    if (cmd === '.ask' || cmd === '.enquiry' || cmd === '.askai') {
+      if (!ai.aiEnabled()) {
+        return sock.sendMessage(jid, { text: '❌ AI currently OFF undi. Admin `.ai on` cheyyali.' }, { quoted: msg })
+      }
+      const question = args.slice(1).join(' ').trim()
+      if (!question) return sock.sendMessage(jid, { text: 'Use: `.ask mee question`' }, { quoted: msg })
+      const reply = await ai.askAI(jid, question)
+      if (reply) return sock.sendMessage(jid, { text: reply }, { quoted: msg })
     }
 
     if (cmd === '.yta' && args[1]) {
@@ -93,6 +110,8 @@ async function startBot() {
     if ((cmd === '.ig' || cmd === '.insta') && args[1]) {
       return download.downloadInstagram(sock, jid, msg, args[1])
     }
+
+    if (!lower.startsWith('.') && await custom.respond(sock, jid, msg, text)) return
 
     // ===== AI CHAT =====
     if (ai.aiEnabled()) {
