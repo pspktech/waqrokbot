@@ -12,6 +12,8 @@ const media = require('./commands/media')
 const secret = require('./commands/secret')
 const protection = require('./commands/protection')
 const afk = require('./commands/afk')
+const lastfm = require('./commands/lastfm')
+const fun = require('./commands/fun')
 
 fs.ensureDirSync('./memory')
 secret.cleanup()
@@ -70,6 +72,10 @@ async function startBot() {
     const args = text.trim().split(/\s+/)
     const cmd = args[0].toLowerCase()
     const isDownloadCommand = ['.yta', '.ytv', '.ig', '.insta', '.ytsearch', '.yts'].includes(cmd)
+    const isPublicCommand = [
+      '.yta', '.ytv', '.ig', '.insta', '.ytsearch', '.yts',
+      '.lastfm', '.lfm', '.np', '.nowplaying', '.truth', '.dare', '.truthdare', '.td'
+    ].includes(cmd)
 
     // Media commands are intentionally available in every chat type and do not
     // depend on admin status, group status, or the fromMe flag.
@@ -84,6 +90,12 @@ async function startBot() {
     if (isDownloadCommand) {
       return sock.sendMessage(jid, { text: 'Use a valid link or search query with this command.' }, { quoted: msg })
     }
+    if (cmd === '.lastfm' || cmd === '.lfm' || cmd === '.np' || cmd === '.nowplaying') {
+      return lastfm.recentTrack(sock, jid, msg, args[1])
+    }
+    if (cmd === '.truth') return fun.truth(sock, jid, msg)
+    if (cmd === '.dare') return fun.dare(sock, jid, msg)
+    if (cmd === '.truthdare' || cmd === '.td') return fun.truthDare(sock, jid, msg)
 
     if (cmd === '.afk' || cmd === '.back' || cmd === '.afkoff') {
       if (!isAdmin) return sock.sendMessage(jid, { text: '❌ AFK command owner/admin matrame use cheyyali.' }, { quoted: msg })
@@ -114,7 +126,7 @@ async function startBot() {
     if (msg.key.fromMe && !isDownloadCommand && (!isSelfChat || !text.trim().startsWith('.'))) return
 
     // Media downloads are allowed in groups; AI and admin controls stay private.
-    if (isGroup && !isDownloadCommand) return
+    if (isGroup && !isPublicCommand) return
 
     // ===== COMMANDS =====
     if (cmd === '.ping') return general.ping(sock, jid, msg)

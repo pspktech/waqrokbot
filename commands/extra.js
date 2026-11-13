@@ -48,11 +48,15 @@ async function menu(sock, jid, msg) {
 .ytv <YouTube link> - Download video
 .ytsearch <query> - Search YouTube
 .ig <Instagram link> - Download reel
+.lastfm [username] / .np - Show recent or now-playing track
 
 *Tools*
 .weather <city> - Current weather
 .translate <language> <text> - Translate text
 .remind <10m|1h|30s> <message> - Set reminder
+.truth - Truth question
+.dare - Clean dare challenge
+.truthdare / .td - Random truth or dare
 
 *AI*
 .ask <question> - Ask AI directly

@@ -50,9 +50,8 @@ async function clear(sock, jid, msg) {
 async function notify(sock, jid, msg) {
   if (!state.active || notifiedChats.has(jid)) return false
   notifiedChats.add(jid)
-  const reason = state.reason ? `\nReason: ${state.reason}` : ''
   await sock.sendMessage(jid, {
-    text: `💤 Owner ippudu AFK lo unnaru. Later reply chestaru.${reason}\nAway for: ${duration()}`
+    text: state.reason || 'AFK'
   }, { quoted: msg })
   return true
 }
