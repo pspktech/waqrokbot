@@ -70,6 +70,20 @@ async function startBot() {
     const cmd = args[0].toLowerCase()
     const isDownloadCommand = ['.yta', '.ytv', '.ig', '.insta', '.ytsearch', '.yts'].includes(cmd)
 
+    // Media commands are intentionally available in every chat type and do not
+    // depend on admin status, group status, or the fromMe flag.
+    if (cmd === '.yta' && args[1]) return download.downloadYoutube(sock, jid, msg, args[1], 'audio')
+    if (cmd === '.ytv' && args[1]) return download.downloadYoutube(sock, jid, msg, args[1], 'video')
+    if ((cmd === '.ig' || cmd === '.insta') && args[1]) {
+      return download.downloadInstagram(sock, jid, msg, args[1])
+    }
+    if ((cmd === '.yts' || cmd === '.ytsearch') && args.slice(1).length) {
+      return extra.ytsearch(sock, jid, msg, args.slice(1).join(' '))
+    }
+    if (isDownloadCommand) {
+      return sock.sendMessage(jid, { text: 'Use a valid link or search query with this command.' }, { quoted: msg })
+    }
+
     // WhatsApp self-chat messages have fromMe=true. Process only commands there;
     // ignoring other self messages prevents the bot from replying to itself forever.
     const botNumbers = [sock.user?.id, sock.user?.lid]
@@ -100,10 +114,6 @@ async function startBot() {
 
     if (cmd === '.sticker' || cmd === '.s') return media.sticker(sock, jid, msg)
     if (cmd === '.save') return media.save(sock, jid, msg)
-    if (cmd === '.ytsearch' || cmd === '.yts') {
-      if (!args.slice(1).length) return extra.menu(sock, jid, msg)
-      return extra.ytsearch(sock, jid, msg, args.slice(1).join(' '))
-    }
     if (cmd === '.weather') {
       if (!args.slice(1).length) return extra.weather(sock, jid, msg, 'Hyderabad')
       return extra.weather(sock, jid, msg, args.slice(1).join(' '))
@@ -159,16 +169,6 @@ async function startBot() {
       if (!question) return sock.sendMessage(jid, { text: 'Use: `.ask mee question`' }, { quoted: msg })
       const reply = await ai.askAI(jid, question)
       if (reply) return sock.sendMessage(jid, { text: reply }, { quoted: msg })
-    }
-
-    if (cmd === '.yta' && args[1]) {
-      return download.downloadYoutube(sock, jid, msg, args[1], 'audio')
-    }
-    if (cmd === '.ytv' && args[1]) {
-      return download.downloadYoutube(sock, jid, msg, args[1], 'video')
-    }
-    if ((cmd === '.ig' || cmd === '.insta') && args[1]) {
-      return download.downloadInstagram(sock, jid, msg, args[1])
     }
 
     // ===== AI CHAT =====
