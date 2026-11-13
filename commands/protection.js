@@ -5,31 +5,14 @@ const SETTINGS_FILE = path.resolve('./protection_status.json')
 const CACHE_TTL = 60 * 60 * 1000
 const messageCache = new Map()
 let antiDeleteEnabled = true
-let autoDestroyEnabled = false
-let autoDestroyDelay = 10000
 
 try {
   const saved = fs.readJsonSync(SETTINGS_FILE)
   antiDeleteEnabled = saved.antiDelete ?? true
-  autoDestroyEnabled = saved.autoDestroy ?? false
-  autoDestroyDelay = saved.autoDestroyDelay ?? 10000
 } catch {}
 
 function saveSettings() {
-  fs.writeJsonSync(SETTINGS_FILE, {
-    antiDelete: antiDeleteEnabled,
-    autoDestroy: autoDestroyEnabled,
-    autoDestroyDelay
-  }, { spaces: 2 })
-}
-
-function parseDuration(value) {
-  const match = /^([1-9]\d*)(s|m|h)$/i.exec(value || '')
-  if (!match) return null
-  const amount = Number(match[1])
-  const multiplier = { s: 1000, m: 60000, h: 3600000 }[match[2].toLowerCase()]
-  const duration = amount * multiplier
-  return duration >= 5000 && duration <= 24 * 60 * 60 * 1000 ? duration : null
+  fs.writeJsonSync(SETTINGS_FILE, { antiDelete: antiDeleteEnabled }, { spaces: 2 })
 }
 
 function extractContent(msg) {
@@ -44,9 +27,7 @@ function extractContent(msg) {
     ['documentMessage', 'document'],
     ['stickerMessage', 'sticker']
   ].find(([key]) => content[key])
-  if (media) {
-    return { kind: media[1], text: content[media[0]].caption || `[${media[1]} message]` }
-  }
+  if (media) return { kind: media[1], text: content[media[0]].caption || `[${media[1]} message]` }
   return null
 }
 
@@ -66,19 +47,6 @@ function remember(msg) {
   }
 }
 
-function scheduleAutoDestroy(sock, msg, isOwner) {
-  if (!autoDestroyEnabled || !msg?.key?.id) return
-  if (!msg.key.fromMe && !isOwner) return
-
-  setTimeout(async () => {
-    try {
-      await sock.sendMessage(msg.key.remoteJid, { delete: msg.key })
-    } catch (error) {
-      console.error('Global auto-destroy error:', error.message)
-    }
-  }, autoDestroyDelay)
-}
-
 async function handleUpdate(sock, item) {
   if (!antiDeleteEnabled) return
   const protocol = item.update?.message?.protocolMessage
@@ -96,24 +64,6 @@ async function handleUpdate(sock, item) {
   })
 }
 
-async function autodestroy(sock, jid, msg, durationText, text) {
-  const duration = parseDuration(durationText)
-  if (!duration || !text) {
-    return sock.sendMessage(jid, {
-      text: 'Use: `.autodestroy 10s secret message`\nTime: 5s to 24h.\nGlobal mode: `.autodestroy on [10s]`'
-    }, { quoted: msg })
-  }
-
-  const sent = await sock.sendMessage(jid, { text }, { quoted: msg })
-  setTimeout(async () => {
-    try {
-      if (sent?.key) await sock.sendMessage(jid, { delete: sent.key })
-    } catch (error) {
-      console.error('Auto-destroy error:', error.message)
-    }
-  }, duration)
-}
-
 async function toggle(sock, jid, msg, value) {
   antiDeleteEnabled = value
   saveSettings()
@@ -122,34 +72,10 @@ async function toggle(sock, jid, msg, value) {
   }, { quoted: msg })
 }
 
-async function toggleAutoDestroy(sock, jid, msg, value, delayText) {
-  const delay = delayText ? parseDuration(delayText) : autoDestroyDelay
-  if (delayText && !delay) {
-    return sock.sendMessage(jid, { text: '❌ Delay 5s to 24h madhya undali. Example: `.autodestroy on 10s`' }, { quoted: msg })
-  }
-  autoDestroyEnabled = value
-  if (delay) autoDestroyDelay = delay
-  saveSettings()
-  await sock.sendMessage(jid, {
-    text: value
-      ? `✅ Global auto-destroy ON. Messages ${Math.round(autoDestroyDelay / 1000)}s tarvata delete avvadaniki try chestayi.`
-      : '❌ Global auto-destroy OFF chesaa.'
-  }, { quoted: msg })
-}
-
 async function status(sock, jid, msg) {
   await sock.sendMessage(jid, {
-    text: `🛡️ Anti-delete: ${antiDeleteEnabled ? 'ON' : 'OFF'}\n⏳ Global auto-destroy: ${autoDestroyEnabled ? `ON (${Math.round(autoDestroyDelay / 1000)}s)` : 'OFF'}\nOne-time: .autodestroy 10s message`
+    text: `🛡️ Anti-delete: ${antiDeleteEnabled ? 'ON' : 'OFF'}`
   }, { quoted: msg })
 }
 
-module.exports = {
-  remember,
-  handleUpdate,
-  scheduleAutoDestroy,
-  autodestroy,
-  toggle,
-  toggleAutoDestroy,
-  status,
-  parseDuration
-}
+module.exports = { remember, handleUpdate, toggle, status }

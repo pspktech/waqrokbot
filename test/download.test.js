@@ -23,13 +23,6 @@ test('encrypts and decrypts secret messages with the correct PIN only', () => {
   assert.throws(() => secret.decryptMessage(encrypted, '9999'))
 })
 
-test('accepts safe auto-destroy durations only', () => {
-  assert.equal(protection.parseDuration('10s'), 10000)
-  assert.equal(protection.parseDuration('1h'), 3600000)
-  assert.equal(protection.parseDuration('2s'), null)
-  assert.equal(protection.parseDuration('25h'), null)
-})
-
 test('extracts media from view-once and ephemeral wrappers', () => {
   const wrapped = {
     ephemeralMessage: {

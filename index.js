@@ -59,7 +59,6 @@ async function startBot() {
 
     const jid = msg.key.remoteJid
     const isAdmin = config.isAdmin(jid, msg.key.remoteJidAlt, msg.key.participantAlt)
-    protection.scheduleAutoDestroy(sock, msg, isAdmin)
     const isGroup = jid.endsWith('@g.us')
     if (jid === 'status@broadcast') return
 
@@ -92,14 +91,6 @@ async function startBot() {
     if (cmd === '.menu' || cmd === '.help') return extra.menu(sock, jid, msg)
     if (cmd === '.secret') return secret.create(sock, jid, msg, args[1], args.slice(2).join(' '))
     if (cmd === '.unlock') return secret.unlock(sock, jid, msg, args[1], args[2])
-    if (cmd === '.autodestroy' || cmd === '.selfdestruct') {
-      if (['on', 'off', 'status'].includes(args[1]?.toLowerCase())) {
-        if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Global auto-destroy admin matrame change cheyyali.' }, { quoted: msg })
-        if (args[1].toLowerCase() === 'status') return protection.status(sock, jid, msg)
-        return protection.toggleAutoDestroy(sock, jid, msg, args[1].toLowerCase() === 'on', args[2])
-      }
-      return protection.autodestroy(sock, jid, msg, args[1], args.slice(2).join(' '))
-    }
     if (cmd === '.antidelete') {
       if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Anti-delete admin matrame change cheyyali.' }, { quoted: msg })
       if (args[1] === 'on') return protection.toggle(sock, jid, msg, true)
