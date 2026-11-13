@@ -4,6 +4,7 @@ const download = require('../commands/download')
 const secret = require('../commands/secret')
 const protection = require('../commands/protection')
 const media = require('../commands/media')
+const afk = require('../commands/afk')
 
 test('accepts HTTP and HTTPS URLs only', () => {
   assert.equal(download.isHttpUrl('https://www.youtube.com/watch?v=test'), true)
@@ -35,4 +36,11 @@ test('extracts media from view-once and ephemeral wrappers', () => {
   }
   assert.equal(media.getMediaMessage(wrapped).type, 'image')
   assert.equal(media.getMediaMessage(wrapped).message.caption, 'test')
+})
+
+test('exports AFK status controls', () => {
+  assert.equal(typeof afk.setAfk, 'function')
+  assert.equal(typeof afk.clear, 'function')
+  assert.equal(typeof afk.notify, 'function')
+  assert.equal(typeof afk.status, 'function')
 })

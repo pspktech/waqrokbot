@@ -41,6 +41,9 @@ async function menu(sock, jid, msg) {
 .secret <PIN> <message> - Create encrypted secret
 .unlock <ID> <PIN> - Unlock secret once
 .antidelete on/off/status - Restore deleted text (admin)
+.afk [reason] - Set owner AFK mode
+.back / .afk off - Return from AFK mode
+.afk status - Check AFK status
 .yta <YouTube link> - Download audio
 .ytv <YouTube link> - Download video
 .ytsearch <query> - Search YouTube

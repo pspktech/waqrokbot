@@ -11,6 +11,7 @@ const extra = require('./commands/extra')
 const media = require('./commands/media')
 const secret = require('./commands/secret')
 const protection = require('./commands/protection')
+const afk = require('./commands/afk')
 
 fs.ensureDirSync('./memory')
 secret.cleanup()
@@ -82,6 +83,22 @@ async function startBot() {
     }
     if (isDownloadCommand) {
       return sock.sendMessage(jid, { text: 'Use a valid link or search query with this command.' }, { quoted: msg })
+    }
+
+    if (cmd === '.afk' || cmd === '.back' || cmd === '.afkoff') {
+      if (!isAdmin) return sock.sendMessage(jid, { text: '❌ AFK command owner/admin matrame use cheyyali.' }, { quoted: msg })
+      if (cmd === '.back' || cmd === '.afkoff' || args[1]?.toLowerCase() === 'off') {
+        return afk.clear(sock, jid, msg)
+      }
+      if (args[1]?.toLowerCase() === 'status') {
+        return afk.status(sock, jid, msg)
+      }
+      return afk.setAfk(sock, jid, msg, args.slice(1).join(' '))
+    }
+
+    if (afk.isActive() && isAdmin) return afk.clear(sock, jid, msg)
+    if (afk.isActive() && !msg.key.fromMe && !text.trim().startsWith('.')) {
+      return afk.notify(sock, jid, msg)
     }
 
     // WhatsApp self-chat messages have fromMe=true. Process only commands there;
