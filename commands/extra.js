@@ -61,8 +61,7 @@ async function menu(sock, jid, msg) {
 .ai enquiry on/off - Toggle .ask/.enquiry responses (admin)
 .ai status - Show both AI statuses (admin)
 .aion / .aioff / .aistatus - Legacy automatic-reply aliases (admin)
-.autoreply add keyword | reply - Add custom reply (admin)
-.autoreply list / delete keyword - Manage custom replies (admin)`
+.menu - Show this menu`
   await sock.sendMessage(jid, { text }, { quoted: msg })
 }
 

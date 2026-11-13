@@ -1,7 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const download = require('../commands/download')
-const custom = require('../commands/custom')
 const secret = require('../commands/secret')
 const protection = require('../commands/protection')
 const media = require('../commands/media')
@@ -16,18 +15,6 @@ test('accepts HTTP and HTTPS URLs only', () => {
 test('exports both downloader commands', () => {
   assert.equal(typeof download.downloadYoutube, 'function')
   assert.equal(typeof download.downloadInstagram, 'function')
-})
-
-test('parses common WhatsApp auto-reply formats', () => {
-  assert.deepEqual(custom.parseCommand(['add', 'hi', '|', 'Hello', 'raa']), {
-    action: 'add', keyword: 'hi', reply: 'Hello raa'
-  })
-  assert.deepEqual(custom.parseCommand(['add', 'good', 'morning', 'Good morning']), {
-    action: 'add', keyword: 'good', reply: 'morning Good morning'
-  })
-  assert.deepEqual(custom.parseCommand(['delete', 'hi']), {
-    action: 'delete', keyword: 'hi'
-  })
 })
 
 test('encrypts and decrypts secret messages with the correct PIN only', () => {

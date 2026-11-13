@@ -9,7 +9,6 @@ const general = require('./commands/general')
 const download = require('./commands/download')
 const extra = require('./commands/extra')
 const media = require('./commands/media')
-const custom = require('./commands/custom')
 const secret = require('./commands/secret')
 const protection = require('./commands/protection')
 
@@ -123,11 +122,6 @@ async function startBot() {
       return extra.remind(sock, jid, msg, args[1], args.slice(2).join(' '))
     }
 
-    if (cmd === '.autoreply' || cmd === '.customreply') {
-      if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Ee command admin matrame use cheyyali.' }, { quoted: msg })
-      return custom.manage(sock, jid, msg, args.slice(1))
-    }
-
     const aiType = args[1]?.toLowerCase()
     const isLegacyAiToggle = cmd === '.aion' || cmd === '.aioff' || (cmd === '.ai' && ['on', 'off'].includes(aiType))
     const isAiOnCommand = cmd === '.aion' || (cmd === '.ai' && aiType === 'on')
@@ -180,8 +174,6 @@ async function startBot() {
     if ((cmd === '.ig' || cmd === '.insta') && args[1]) {
       return download.downloadInstagram(sock, jid, msg, args[1])
     }
-
-    if (!lower.startsWith('.') && await custom.respond(sock, jid, msg, text)) return
 
     // ===== AI CHAT =====
     if (ai.chatEnabled()) {
