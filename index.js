@@ -60,7 +60,8 @@ async function startBot() {
     const jid = msg.key.remoteJid
     const isAdmin = config.isAdmin(jid, msg.key.remoteJidAlt, msg.key.participantAlt)
     protection.scheduleAutoDestroy(sock, msg, isAdmin)
-    if (jid.endsWith('@g.us') || jid === 'status@broadcast') return
+    const isGroup = jid.endsWith('@g.us')
+    if (jid === 'status@broadcast') return
 
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || ''
     if (!text) return
@@ -80,6 +81,10 @@ async function startBot() {
     const lower = text.toLowerCase().trim()
     const args = text.trim().split(/\s+/)
     const cmd = args[0].toLowerCase()
+
+    // Media downloads are allowed in groups; AI and admin controls stay private.
+    const isDownloadCommand = ['.yta', '.ytv', '.ig', '.insta', '.ytsearch', '.yts'].includes(cmd)
+    if (isGroup && !isDownloadCommand) return
 
     // ===== COMMANDS =====
     if (cmd === '.ping') return general.ping(sock, jid, msg)
