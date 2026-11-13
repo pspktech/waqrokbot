@@ -65,6 +65,11 @@ async function startBot() {
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text || ''
     if (!text) return
 
+    const lower = text.toLowerCase().trim()
+    const args = text.trim().split(/\s+/)
+    const cmd = args[0].toLowerCase()
+    const isDownloadCommand = ['.yta', '.ytv', '.ig', '.insta', '.ytsearch', '.yts'].includes(cmd)
+
     // WhatsApp self-chat messages have fromMe=true. Process only commands there;
     // ignoring other self messages prevents the bot from replying to itself forever.
     const botNumbers = [sock.user?.id, sock.user?.lid]
@@ -75,14 +80,9 @@ async function startBot() {
       .map((value) => String(value).replace(/:.*/, '').replace(/\D/g, ''))
     const isSelfChat = chatNumbers.some((number) => number && botNumbers.includes(number))
     if (isSelfChat && !text.trim().startsWith('.')) return
-    if (msg.key.fromMe && (!isSelfChat || !text.trim().startsWith('.'))) return
-
-    const lower = text.toLowerCase().trim()
-    const args = text.trim().split(/\s+/)
-    const cmd = args[0].toLowerCase()
+    if (msg.key.fromMe && !isDownloadCommand && (!isSelfChat || !text.trim().startsWith('.'))) return
 
     // Media downloads are allowed in groups; AI and admin controls stay private.
-    const isDownloadCommand = ['.yta', '.ytv', '.ig', '.insta', '.ytsearch', '.yts'].includes(cmd)
     if (isGroup && !isDownloadCommand) return
 
     // ===== COMMANDS =====
