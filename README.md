@@ -38,6 +38,14 @@ Before running the bot, make sure you have these installed in your Termux:
    GROQ_API_KEY=your_groq_api_key_here
    BOT_NAME=Grok_Assistant
    ADMIN_NUMBER=919876543210
+   # One account (default):
+   SESSIONS=main
+
+   # Multiple accounts example:
+   # SESSIONS=main,second,third
+   # Optional separate admins for named sessions:
+   # ADMIN_NUMBER_MAIN=919876543210
+   # ADMIN_NUMBER_SECOND=919812345678
    ```
 
 💻 Usage
@@ -49,6 +57,18 @@ node index.js
 ```
 
 Scan the QR code or use the pairing code in your WhatsApp (Linked Devices) to connect.
+
+### Multiple WhatsApp accounts
+
+Set comma-separated session names in `.env`:
+
+```env
+SESSIONS=main,second
+ADMIN_NUMBER_MAIN=919876543210
+ADMIN_NUMBER_SECOND=919812345678
+```
+
+The `main` account keeps using `auth_info/`. Other accounts use separate folders such as `auth_info_second/`. On first start, scan the terminal QR code shown with the matching session name. Each account has its own WhatsApp login and reconnect loop. If a session-specific admin variable is missing, the shared `ADMIN_NUMBER` value is used.
 
 ⚠️ Disclaimer
 

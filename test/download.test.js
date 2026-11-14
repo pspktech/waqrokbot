@@ -8,6 +8,7 @@ const afk = require('../commands/afk')
 const lastfm = require('../commands/lastfm')
 const fun = require('../commands/fun')
 const privacy = require('../commands/privacy')
+const config = require('../config')
 
 test('accepts HTTP and HTTPS URLs only', () => {
   assert.equal(download.isHttpUrl('https://www.youtube.com/watch?v=test'), true)
@@ -59,4 +60,10 @@ test('exports hidden-online privacy controls', () => {
   assert.equal(typeof privacy.isHidden, 'function')
   assert.equal(typeof privacy.apply, 'function')
   assert.equal(typeof privacy.toggle, 'function')
+})
+
+test('supports per-session admin configuration', () => {
+  const sessionConfig = config.forSession('second')
+  assert.equal(typeof sessionConfig.isAdmin, 'function')
+  assert.equal(typeof sessionConfig.ADMIN, 'string')
 })

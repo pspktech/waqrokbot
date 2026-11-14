@@ -6,21 +6,35 @@ function normalizeAdminNumber(value) {
   return digits ? `${digits}@s.whatsapp.net` : ''
 }
 
-const adminJids = String(process.env.ADMIN_NUMBER || '')
-  .split(',')
-  .map(normalizeAdminNumber)
-  .filter(Boolean)
+function getAdminJids(value) {
+  return String(value || '')
+    .split(',')
+    .map(normalizeAdminNumber)
+    .filter(Boolean)
+}
+
+function createSessionConfig(sessionName = 'main') {
+  const envKey = `ADMIN_NUMBER_${String(sessionName).toUpperCase().replace(/[^A-Z0-9]/g, '_')}`
+  const adminJids = getAdminJids(process.env[envKey] || process.env.ADMIN_NUMBER)
+  return {
+    ADMIN: adminJids[0] || '',
+    isAdmin(...jids) {
+      return jids.filter(Boolean).some((jid) => {
+        const current = String(jid).split(':')[0]
+        const currentNumber = current.replace(/\D/g, '')
+        return adminJids.some((adminJid) => current === adminJid || currentNumber === adminJid.replace(/\D/g, ''))
+      })
+    }
+  }
+}
+
+const defaultSessionConfig = createSessionConfig('main')
 
 module.exports = {
   BOT_NAME: process.env.BOT_NAME || 'Assistant',
-  ADMIN: adminJids[0] || '',
-  isAdmin(...jids) {
-    return jids.filter(Boolean).some((jid) => {
-      const current = String(jid).split(':')[0]
-      const currentNumber = current.replace(/\D/g, '')
-      return adminJids.some((adminJid) => current === adminJid || currentNumber === adminJid.replace(/\D/g, ''))
-    })
-  },
+  ADMIN: defaultSessionConfig.ADMIN,
+  isAdmin: defaultSessionConfig.isAdmin,
+  forSession: createSessionConfig,
   PREFIX: '.',
   SYSTEM_PROMPT: `Nuvvu WhatsApp lo Telugu lo matlade warm, natural, friendly AI assistant.
 

@@ -2,6 +2,7 @@ require('dotenv').config()
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys')
 const { Boom } = require('@hapi/boom')
 const pino = require('pino')
+const qrcode = require('qrcode-terminal')
 const fs = require('fs-extra')
 const config = require('./config')
 const ai = require('./commands/ai')
@@ -19,8 +20,21 @@ const privacy = require('./commands/privacy')
 fs.ensureDirSync('./memory')
 secret.cleanup()
 
-async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState('auth_info')
+const sessionNames = [...new Set(
+  String(process.env.SESSIONS || 'main')
+    .split(',')
+    .map((name) => name.trim().toLowerCase())
+    .filter((name) => /^[a-z0-9_-]+$/.test(name))
+)]
+if (!sessionNames.length) sessionNames.push('main')
+
+function authDirectory(sessionName) {
+  return sessionName === 'main' ? 'auth_info' : `auth_info_${sessionName}`
+}
+
+async function startBot(sessionName = 'main') {
+  const sessionConfig = config.forSession(sessionName)
+  const { state, saveCreds } = await useMultiFileAuthState(authDirectory(sessionName))
   const { version } = await fetchLatestBaileysVersion()
 
   const sock = makeWASocket({
@@ -29,7 +43,7 @@ async function startBot() {
     logger: pino({ level: 'silent' }),
     printQRInTerminal: false,
     markOnlineOnConnect: !privacy.isHidden(),
-    browser: ['Ubuntu', 'Chrome', '20.0.04']
+    browser: ['WaqrokBot', sessionName, '1.0']
   })
 
   sock.ev.on('creds.update', saveCreds)
@@ -45,14 +59,18 @@ async function startBot() {
   })
 
   sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update
+    const { connection, lastDisconnect, qr } = update
+    if (qr) {
+      console.log(`\nScan QR for session: ${sessionName}`)
+      qrcode.generate(qr, { small: true })
+    }
     if (connection === 'close') {
       const shouldReconnect = (lastDisconnect?.error instanceof Boom)
         ? lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut
         : true
-      if (shouldReconnect) startBot()
+      if (shouldReconnect) startBot(sessionName)
     } else if (connection === 'open') {
-      console.log('✅ Bot connected')
+      console.log(`✅ Bot connected [${sessionName}]`)
       privacy.apply(sock)
     }
   })
@@ -64,7 +82,7 @@ async function startBot() {
     protection.remember(msg)
 
     const jid = msg.key.remoteJid
-    const isAdmin = config.isAdmin(jid, msg.key.remoteJidAlt, msg.key.participantAlt)
+    const isAdmin = sessionConfig.isAdmin(jid, msg.key.remoteJidAlt, msg.key.participantAlt)
     const isGroup = jid.endsWith('@g.us')
     if (jid === 'status@broadcast') return
 
@@ -178,7 +196,7 @@ async function startBot() {
     const isAiStatusCommand = cmd === '.aistatus' || (cmd === '.ai' && aiType === 'status')
     if (isLegacyAiToggle || isAiReplyOnCommand || isAiReplyOffCommand || isAiEnquiryOnCommand || isAiEnquiryOffCommand || isAiStatusCommand) {
       if (!isAdmin) {
-        console.log(`[AI auth] denied jid=${jid} alt=${msg.key.remoteJidAlt || '-'} admin=${config.ADMIN || '(not set)'}`)
+        console.log(`[${sessionName}] [AI auth] denied jid=${jid} alt=${msg.key.remoteJidAlt || '-'} admin=${sessionConfig.ADMIN || '(not set)'}`)
         return sock.sendMessage(jid, {
           text: '❌ Admin permission ledu. `.env` lo mee WhatsApp number ni ADMIN_NUMBER ga set chesi bot restart cheyyi.'
         }, { quoted: msg })
@@ -222,4 +240,8 @@ async function startBot() {
   })
 }
 
-startBot()
+for (const sessionName of sessionNames) {
+  startBot(sessionName).catch((error) => {
+    console.error(`[${sessionName}] Startup error:`, error.message)
+  })
+}
