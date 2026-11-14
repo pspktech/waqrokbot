@@ -44,6 +44,7 @@ async function menu(sock, jid, msg) {
 .afk [reason] - Set owner AFK mode
 .back / .afk off - Return from AFK mode
 .afk status - Check AFK status
+.online hide/show/status - Hide bot online presence (admin)
 .yta <YouTube link> - Download audio
 .ytv <YouTube link> - Download video
 .ytsearch <query> - Search YouTube

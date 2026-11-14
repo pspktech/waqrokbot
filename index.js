@@ -14,6 +14,7 @@ const protection = require('./commands/protection')
 const afk = require('./commands/afk')
 const lastfm = require('./commands/lastfm')
 const fun = require('./commands/fun')
+const privacy = require('./commands/privacy')
 
 fs.ensureDirSync('./memory')
 secret.cleanup()
@@ -27,6 +28,7 @@ async function startBot() {
     auth: state,
     logger: pino({ level: 'silent' }),
     printQRInTerminal: false,
+    markOnlineOnConnect: !privacy.isHidden(),
     browser: ['Ubuntu', 'Chrome', '20.0.04']
   })
 
@@ -51,6 +53,7 @@ async function startBot() {
       if (shouldReconnect) startBot()
     } else if (connection === 'open') {
       console.log('✅ Bot connected')
+      privacy.apply(sock)
     }
   })
 
@@ -96,6 +99,13 @@ async function startBot() {
     if (cmd === '.truth') return fun.truth(sock, jid, msg)
     if (cmd === '.dare') return fun.dare(sock, jid, msg)
     if (cmd === '.truthdare' || cmd === '.td') return fun.truthDare(sock, jid, msg)
+
+    if (cmd === '.online' || cmd === '.privacy') {
+      if (!isAdmin) return sock.sendMessage(jid, { text: '❌ Privacy command owner/admin matrame use cheyyali.' }, { quoted: msg })
+      if (args[1] === 'hide' || args[1] === 'off') return privacy.toggle(sock, jid, msg, true)
+      if (args[1] === 'show' || args[1] === 'on') return privacy.toggle(sock, jid, msg, false)
+      return privacy.status(sock, jid, msg)
+    }
 
     if (cmd === '.afk' || cmd === '.back' || cmd === '.afkoff') {
       if (!isAdmin) return sock.sendMessage(jid, { text: '❌ AFK command owner/admin matrame use cheyyali.' }, { quoted: msg })

@@ -7,6 +7,7 @@ const media = require('../commands/media')
 const afk = require('../commands/afk')
 const lastfm = require('../commands/lastfm')
 const fun = require('../commands/fun')
+const privacy = require('../commands/privacy')
 
 test('accepts HTTP and HTTPS URLs only', () => {
   assert.equal(download.isHttpUrl('https://www.youtube.com/watch?v=test'), true)
@@ -52,4 +53,10 @@ test('exports Last.fm and Truth-or-Dare features', () => {
   assert.ok(fun.truths.length > 0)
   assert.ok(fun.dares.length > 0)
   assert.equal(typeof fun.truthDare, 'function')
+})
+
+test('exports hidden-online privacy controls', () => {
+  assert.equal(typeof privacy.isHidden, 'function')
+  assert.equal(typeof privacy.apply, 'function')
+  assert.equal(typeof privacy.toggle, 'function')
 })
